@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ネットワーク基礎 練習問題 (全50問)</title>
+    <!-- Tailwind CSSの読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* カスタムスタイルの追加 */
+        .option-label {
+            transition: all 0.2s ease-in-out;
+        }
+        .option-label:hover {
+            background-color: #f3f4f6;
+            cursor: pointer;
+        }
+        input[type="radio"]:checked + .option-text {
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .correct-bg { background-color: #dcfce7 !important; border-color: #22c55e !important; }
+        .incorrect-bg { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
+        .progress-bar-fill {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+
+    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        
+        <!-- ヘッダー -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">ネットワーク基礎 練習問題</h1>
+            <p class="mt-3 text-lg text-gray-500">提示された資料に基づくレイヤー1〜WANまでの総合確認テスト</p>
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+                <a href="index.html" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-full text-sm font-bold hover:bg-gray-400 transition">JSP / Servlet</a>
+            </div>
+        </div>
+
+        <!-- クイズ進行状況 -->
+        <div id="progress-container" class="mb-4 flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow-sm border border-gray-200">
+            <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Progress</span>
+            <span class="text-lg font-bold text-blue-600">問題 <span id="current-q-num">1</span> / <span id="total-q-num">50</span></span>
+        </div>
+
+        <!-- クイズエリア（1問ずつ表示） -->
+        <div id="quiz-area">
+            <!-- エラーメッセージ -->
+            <div id="error-message" class="hidden mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong class="font-bold">エラー: </strong>
+                <span class="block sm:inline">選択肢を選んでから「解答する」を押してください。</span>
+            </div>
+            
+            <div id="question-container" class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 mb-6">
+                <!-- JavaScriptでここに1問分の内容が生成されます -->
+            </div>
+
+            <!-- コントロールボタン -->
+            <div class="mt-6 text-center">
+                <button type="button" id="submit-answer-btn" onclick="checkAnswer()" class="inline-flex items-center px-8 py-3 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    解答する
+                </button>
+                <button type="button" id="next-question-btn" onclick="nextQuestion()" class="hidden inline-flex items-center px-8 py-3 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                    次の問題へ
+                </button>
+                <button type="button" id="show-result-btn" onclick="showFinalResult()" class="hidden inline-flex items-center px-8 py-3 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors">
+                    結果を見る
+                </button>
+            </div>
+        </div>
+
+        <!-- 最終結果表示エリア（初期状態は非表示） -->
+        <div id="result-section" class="hidden mb-8 bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">テスト結果</h2>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-8 mb-6">
+                <div class="text-center">
+                    <p class="text-sm text-gray-500 uppercase tracking-wide">正答数</p>
+                    <p class="text-5xl font-extrabold text-blue-600"><span id="score-count">0</span><span class="text-2xl text-gray-400"> / <span id="result-total-count">50</span></span></p>
+                </div>
+                <div class="w-full sm:w-1/2">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-base font-medium text-blue-700">正答率</span>
+                        <span id="score-percentage-text" class="text-base font-medium text-blue-700">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div id="score-progress" class="bg-blue-600 h-4 rounded-full progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <p id="result-message" class="text-center text-lg font-medium text-gray-700 mb-8"></p>
+            
+            <div class="text-center">
+                <button type="button" onclick="resetQuiz()" class="inline-flex items-center px-8 py-3 border border-gray-300 text-lg font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    もう一度挑戦する
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 全50問の問題データ
+        const quizData = [
+            // --- ネットワーク基礎 ---
+            {
+                question: "IT業界における「ネットワーク」の一般的な定義として最も適切なものはどれか？",
+                options: ["人を網状につなげたもの", "コンピュータや機器を相互接続したもの", "道路や鉄道の交通網のこと", "インターネット上のWebサイトの集合体"],
+                correctIndex: 1,
+                rationale: "IT業界におけるネットワークとは、複数のコンピュータや通信機器を相互に接続した状態や、その技術のことを指します。"
+            },
+            {
+                question: "LAN（Local Area Network）の説明として正しいものはどれか？",
+                options: ["世界中のコンピュータを相互接続する巨大なネットワーク", "離れた支社同士を接続するための広域ネットワーク", "家庭や会社内など、比較的狭い範囲で構築されるネットワーク", "携帯電話の基地局を利用した無線ネットワーク"],
+                correctIndex: 2,
+                rationale: "LANは家庭やオフィスなど、特定の比較的狭い範囲で機器を接続するネットワークです。離れた拠点間をつなぐのはWANです。"
+            },
+            {
+                question: "WAN（Wide Area Network）の説明として正しいものはどれか？",
+                options: ["家庭内に限定されたネットワーク", "離れたLAN同士（本社と支社など）を通信事業者の回線を利用して接続するネットワーク", "Bluetoothなどを利用した近距離無線ネットワーク", "不特定多数の人が自由に接続できる公衆Wi-Fi"],
+                correctIndex: 1,
+                rationale: "WANは、NTTやKDDIなどの電気通信事業者の回線を利用して、離れた場所にあるLAN同士を相互に接続する広域ネットワークです。"
+            },
+            
+            // --- モデルとアーキテクチャ ---
+            {
+                question: "OSI参照モデルは、ネットワークの機能をいくつの階層に分けて定義しているか？",
+                options: ["4階層", "5階層", "7階層", "9階層"],
+                correctIndex: 2,
+                rationale: "OSI参照モデルは、通信機能を第1層（物理層）から第7層（アプリケーション層）までの7つの階層に分割して定義しています。"
+            },
+            {
+                question: "TCP/IPの階層モデルは、いくつの階層で構成されているか？",
+                options: ["3階層", "4階層", "6階層", "7階層"],
+                correctIndex: 1,
+                rationale: "TCP/IPモデルは、ネットワークインターフェース層、インターネット層、トランスポート層、アプリケーション層の4階層で構成されます。"
+            },
+            {
+                question: "OSI参照モデルの「第1層」にあたるものはどれか？",
+                options: ["ネットワーク層", "トランスポート層", "データリンク層", "物理層"],
+                correctIndex: 3,
+                rationale: "第1層は「物理層」であり、LANケーブルやWi-Fiの電波など、物理的な接続や信号の電気的な変換などを規定します。"
+            },
+            {
+                question: "OSI参照モデルの「第3層（ネットワーク層）」の主な役割として適切なものはどれか？",
+                options: ["送信元から宛先へのデータを最適な経路で転送（ルーティング）する", "直接接続された機器同士でMACアドレスを使ってデータをやり取りする", "アプリケーションごとの固有の規定（HTTPやSMTPなど）を定める", "物理的なケーブルの材質やコネクタの形状を規定する"],
+                correctIndex: 0,
+                rationale: "ネットワーク層（レイヤー3）は、IPアドレスを使用して異なるネットワークを越えて宛先までデータを届けるための経路制御（ルーティング）を行います。"
+            },
+
+            // --- レイヤー1 ---
+            {
+                question: "LANケーブルの接続において、PCとPCなど「同じ役割の機器」を直接接続する際に（原則として）使用するケーブルはどれか？",
+                options: ["ストレートケーブル", "クロスケーブル", "同軸ケーブル", "光ファイバーケーブル"],
+                correctIndex: 1,
+                rationale: "PC同士やハブ同士など同じ役割の機器を接続する場合は、送信側と受信側のピンの配線を交差させた「クロスケーブル」を使用します。"
+            },
+            {
+                question: "現在の多くの通信機器に搭載されている、ストレートケーブルとクロスケーブルを自動的に判別して通信できるようにする機能は何と呼ばれるか？",
+                options: ["Auto-Negotiation", "AutoMDI/MDI-X", "DHCP", "CSMA/CD"],
+                correctIndex: 1,
+                rationale: "AutoMDI/MDI-X機能により、機器が自動的にケーブルの種類（ストレート/クロス）を判別し、適切に送受信のピンを切り替えるため、現在はストレートケーブルだけでほとんどの接続が可能になっています。"
+            },
+            {
+                question: "Wi-Fiの「2.4GHz帯（IEEE802.11b/g/nなど）」の特徴として正しいものはどれか？",
+                options: ["壁などの障害物に強く遠くまで届きやすいが、電子レンジなどと電波干渉を起こしやすい", "通信速度が非常に高速だが、障害物に弱く減衰しやすい", "屋外での利用が法律で厳しく制限されている", "Bluetooth機器とは一切干渉しない"],
+                correctIndex: 0,
+                rationale: "2.4GHz帯は障害物を回り込む特性があるため遠くまで届きやすいですが、電子レンジやBluetoothなど多くの機器で利用されている帯域のため電波干渉が起きやすいのが特徴です。"
+            },
+            {
+                question: "Wi-Fiの「5GHz帯（IEEE802.11a/acなど）」の特徴として正しいものはどれか？",
+                options: ["電子レンジなどの家電と電波干渉を起こしやすい", "障害物を回り込みやすく、遠くまで届きやすい", "壁などの障害物に弱く、減衰しやすい", "屋外での利用が法律で一切制限されていない"],
+                correctIndex: 2,
+                rationale: "5GHz帯は電子レンジなどとの干渉が少なく高速ですが、直進性が高く壁などの「障害物に弱い（減衰しやすい）」のが特徴です。また気象レーダー等との干渉を避けるため屋外利用には一部制限があります。"
+            },
+
+            // --- レイヤー2 ---
+            {
+                question: "データリンク層（レイヤー2）で扱われるデータの単位（まとまり）はどれか？",
+                options: ["セグメント", "パケット", "フレーム", "メッセージ"],
+                correctIndex: 2,
+                rationale: "OSI参照モデルのデータリンク層で扱われるデータの単位は「フレーム」です。ネットワーク層では「パケット」、トランスポート層（TCP）では「セグメント」と呼ばれます。"
+            },
+            {
+                question: "レイヤー2（データリンク層）で動作し、MACアドレスを判断材料として通信を振り分ける主な機器はどれか？",
+                options: ["リピーターハブ", "ルーター", "L2スイッチ", "ロードバランサ"],
+                correctIndex: 2,
+                rationale: "L2スイッチは、接続された機器のMACアドレスを学習してアドレステーブルを作成し、宛先のMACアドレスが登録されているポートにのみデータを転送します。"
+            },
+            {
+                question: "L2スイッチが、受信したフレームの宛先MACアドレスを「知らない（アドレステーブルに未登録である）」場合、どのような動作を行うか？",
+                options: ["そのフレームを破棄する", "送信元にエラーメッセージを返す", "受信したポート以外のすべてのポートにフレームを転送（フラッディング）する", "ルーターに転送して処理を任せる"],
+                correctIndex: 2,
+                rationale: "L2スイッチは宛先MACアドレスを知らない場合、接続されている全機器に対して信号を流します（フラッディング）。該当機器が応答することでMACアドレスを学習します。"
+            },
+            {
+                question: "MACアドレスの構成として正しいものはどれか？",
+                options: ["32ビットで構成され、ネットワーク部とホスト部に分かれる", "48ビットで構成され、前半24ビットがベンダーID（メーカー識別子）、後半24ビットが機器固有の番号となる", "128ビットで構成され、16進数で表記される", "ポート番号と組み合わせて64ビットで構成される"],
+                correctIndex: 1,
+                rationale: "MACアドレスは48ビットの物理アドレスで、世界中で重複しないように管理されています。前半24ビット（OUI）で製造メーカーを、後半24ビットで固有番号を表します。"
+            },
+            {
+                question: "MACアドレスの表記方法として一般的なものはどれか？",
+                options: ["192.168.1.1", "FF-EE-DD-CC-BB-AA", "2001:db8::1", "1234-5678-90AB-CDEF"],
+                correctIndex: 1,
+                rationale: "MACアドレスは通常、16進数を2桁ずつハイフン（-）やコロン（:）で6つに区切って表記します（例: FF-EE-DD-CC-BB-AA）。"
+            },
+
+            // --- レイヤー3 (IPアドレス、計算) ---
+            {
+                question: "IPv4アドレスの長さ（ビット数）はどれか？",
+                options: ["16ビット", "32ビット", "48ビット", "128ビット"],
+                correctIndex: 1,
+                rationale: "IPv4アドレスは32ビットで構成されています。"
+            },
+            {
+                question: "IPv4アドレスの一般的な表記方法として正しいものはどれか？",
+                options: ["16進数を2桁ずつハイフンで区切って表記する", "8ビットずつドット（.）で区切り、10進数で表記する", "16ビットずつコロン（:）で区切り、16進数で表記する", "2進数のまま32桁で表記する"],
+                correctIndex: 1,
+                rationale: "IPv4アドレスは32ビットを8ビットずつの4つ（オクテット）に分け、それぞれを10進数に直してドットで区切って表記します（例：192.168.0.1）。"
+            },
+            {
+                question: "自分自身を指す仮想的なIPアドレス（例：127.0.0.1）を何と呼ぶか？",
+                options: ["ループバックアドレス", "ブロードキャストアドレス", "ネットワークアドレス", "グローバルアドレス"],
+                correctIndex: 0,
+                rationale: "ループバックアドレスは、自分自身（ローカルホスト）を指す特殊なIPアドレスです。OSの内部処理やネットワーク機能のテストなどに利用され、外部には送信されません。"
+            },
+            {
+                question: "ブロードキャストアドレスの特徴として正しいものはどれか？",
+                options: ["IPアドレスのホスト部がすべて「0」のアドレスである", "IPアドレスのホスト部がすべて「1」のアドレスである", "インターネット上で世界中の全PCに一斉送信するためのアドレスである", "ルーター自身のIPアドレスとして予約されている"],
+                correctIndex: 1,
+                rationale: "ブロードキャストアドレスは、ホスト部をすべて「1」（2進数で）にしたアドレスで、同一ネットワーク内（LAN内）のすべてのコンピュータに対して一斉にデータを送信する際に使用されます。"
+            },
+            {
+                question: "ネットワークアドレスの特徴として正しいものはどれか？",
+                options: ["ネットワークそのものを指し示すアドレスであり、ホスト部がすべて「0」である", "ネットワーク内の特定の1台のコンピュータに割り当てられるアドレスである", "ホスト部がすべて「1」のアドレスである", "通信エラーが発生した際に自動的に割り当てられるアドレスである"],
+                correctIndex: 0,
+                rationale: "ネットワークアドレスは「どのネットワークか」を表すアドレスで、ホスト部がすべて「0」になります。コンピュータに個別に割り当てることはできません。"
+            },
+            {
+                question: "ネットマスク（サブネットマスク）の主な役割はどれか？",
+                options: ["プライベートIPアドレスをグローバルIPアドレスに変換する", "通信データを暗号化して安全性を高める", "IPアドレスから「ネットワーク部」と「ホスト部」を区別・抽出する", "MACアドレスからIPアドレスを自動的に検索する"],
+                correctIndex: 2,
+                rationale: "ネットマスクは、32ビットのIPアドレスのうち、どこまでが「ネットワーク部」で、どこからが「ホスト部」なのかを示すための値です。"
+            },
+            {
+                question: "IPアドレスが「192.168.5.123」、ネットマスクが「255.255.255.0」の場合のネットワークアドレスはどれか？",
+                options: ["192.168.5.123", "192.168.5.255", "192.168.5.0", "192.168.0.0"],
+                correctIndex: 2,
+                rationale: "ネットマスク「255.255.255.0」は上位24ビットがネットワーク部であることを示します。ホスト部（第4オクテット）をすべて「0」にしたものがネットワークアドレスとなるため、「192.168.5.0」が正解です。"
+            },
+            {
+                question: "IPアドレスの「クラスA」の特徴として正しいものはどれか？",
+                options: ["先頭の8ビットがネットワーク部であり、大規模なネットワーク向けである", "先頭の16ビットがネットワーク部である", "先頭の24ビットがネットワーク部であり、小規模なネットワーク向けである", "マルチキャスト通信専用のクラスである"],
+                correctIndex: 0,
+                rationale: "クラスAはネットワーク部が8ビット、ホスト部が24ビットで構成され、1つのネットワークに約1600万台のホストを接続できる大規模ネットワーク向けのクラスです。"
+            },
+            {
+                question: "IPアドレスの「クラスC」のネットワーク部の長さ（標準のネットマスク）はどれか？",
+                options: ["8ビット", "16ビット", "24ビット", "32ビット"],
+                correctIndex: 2,
+                rationale: "クラスCはネットワーク部が24ビット、ホスト部が8ビット（標準ネットマスク 255.255.255.0）で構成され、1ネットワークあたり254台の機器を接続できます。"
+            },
+            {
+                question: "クラスDのIPアドレス（224.0.0.0〜239.255.255.255）はどのような用途で使用されるか？",
+                options: ["大規模企業のプライベートIPアドレスとして", "特定のグループに属する複数のホストへ同時にデータを送る「マルチキャスト通信」用として", "将来のための実験・研究用として", "ループバック通信の専用アドレスとして"],
+                correctIndex: 1,
+                rationale: "クラスDは特定の複数の宛先に同時にデータを送信する「マルチキャスト通信」のために予約されたアドレス帯域です。"
+            },
+            {
+                question: "サブネットマスクを用いてネットワークを分割する（サブネット化）メリットはどれか？",
+                options: ["グローバルIPアドレスが不要になる", "IPアドレスの無駄遣いを防ぎ、ブロードキャストが届く範囲を狭めてネットワークの負荷を軽減できる", "ルーターを使用せずに異なるネットワーク間の通信が可能になる", "通信データを自動的に暗号化できる"],
+                correctIndex: 1,
+                rationale: "サブネット化により、限られたIPアドレスを効率的に割り当てることができ、また無駄なブロードキャスト通信がネットワーク全体に広がるのを防ぐことができます。"
+            },
+
+            // --- レイヤー3 (グローバル、プライベート、NAT、IPv6) ---
+            {
+                question: "プライベートIPアドレスの主な用途はどれか？",
+                options: ["インターネット上でWebサーバを公開する際に使用する", "家庭内LANや企業内ネットワークなど、閉じた組織内で機器に割り当てる", "世界中のルーター同士が経路情報を交換する際に専用で使用する", "自分自身との通信テストを行うためにのみ使用する"],
+                correctIndex: 1,
+                rationale: "プライベートIPアドレスは、LAN内など特定のネットワーク内で自由に使用できるアドレスです。そのままではインターネットでの通信はできません。"
+            },
+            {
+                question: "グローバルIPアドレスの特徴として正しいものはどれか？",
+                options: ["誰でも自由に好きな番号をPCに設定して利用できる", "インターネット上で利用され、世界中で重複しないように一意に割り当てられている", "ルーターを越えることはできず、同一LAN内でのみ有効である", "MACアドレスと同じく48ビットで構成されている"],
+                correctIndex: 1,
+                rationale: "グローバルIPアドレスはインターネット上で通信するために必須のアドレスであり、ICANNなどの機関によって世界で重複しないように厳密に管理・割り当てられています。"
+            },
+            {
+                question: "NAT（Network Address Translation）の主な役割はどれか？",
+                options: ["IPアドレスとMACアドレスを紐付ける", "ドメイン名（ホスト名）をIPアドレスに変換する", "プライベートIPアドレスとグローバルIPアドレスを相互に変換する", "通信データを圧縮して転送速度を向上させる"],
+                correctIndex: 2,
+                rationale: "NATは、LAN内のプライベートIPアドレスと、インターネット側のグローバルIPアドレスを変換する技術です。基本的なNATは1対1の変換を行います。"
+            },
+            {
+                question: "NAPT（Network Address Port Translation）の特徴として正しいものはどれか？",
+                options: ["1対1でプライベートIPとグローバルIPを変換する", "ポート番号を利用して複数端末の通信を識別・区別する", "グローバルアドレスが接続する端末数分だけ複数必要になる", "プライベートアドレスをそのままインターネット上に送信する"],
+                correctIndex: 1,
+                rationale: "NAPTは、IPアドレスに加えて「ポート番号」も変換・管理することで、1つのグローバルIPアドレスで複数のプライベートIPアドレスを持つ端末が同時にインターネット通信を行えるようにする技術です。"
+            },
+            {
+                question: "IPv6アドレスの特徴として正しいものはどれか？",
+                options: ["アドレス空間が枯渇しつつあり、IPv4への移行が進められている", "32ビットで構成され、約43億個のアドレスを持つ", "128ビットで構成され、事実上無限に近い膨大なアドレス空間を持つ", "インターネットではなく、閉域網（WAN）の専用アドレスとして開発された"],
+                correctIndex: 2,
+                rationale: "IPv6はIPv4の枯渇問題に対応するため開発されました。128ビットの長さを持ち、約340澗（かん）個という膨大な数のIPアドレスを割り当てることができます。"
+            },
+            {
+                question: "IPv6アドレスの一般的な表記方法として正しいものはどれか？",
+                options: ["8ビットずつドットで区切り10進数で表記する", "16ビットずつコロン（:）で区切り、16進数で表記する", "2桁の16進数をハイフンで6つにつないで表記する", "すべて2進数で表記し、区切り文字は使用しない"],
+                correctIndex: 1,
+                rationale: "IPv6アドレスは「2001:0db8:85a3::8a2e:0370:7334」のように、16ビットごとにコロン（:）で区切って16進数で表記します。"
+            },
+            {
+                question: "デフォルトゲートウェイの役割として正しいものはどれか？",
+                options: ["自ネットワーク宛ての通信を遮断するファイアウォール", "宛先が自ネットワーク内にない（他のネットワーク宛てである）データを最初に送るべき出入口の機器", "IPアドレスを自動的に割り当てるサーバー", "ドメイン名からIPアドレスを検索するサーバー"],
+                correctIndex: 1,
+                rationale: "デフォルトゲートウェイは、LANから外部（インターネットや他のLAN）へ通信する際の「関所」や「出入口」となる機器（通常はルーター）のIPアドレスです。"
+            },
+
+            // --- レイヤー3 (VLAN) ---
+            {
+                question: "VLAN（Virtual LAN）を導入する主な目的はどれか？",
+                options: ["物理的なLANケーブルをすべて無線化する", "通信速度を物理的な限界以上に引き上げる", "物理的な配線やスイッチの構成に依存せず、論理的にネットワークを分割・グループ化する", "MACアドレスを使わずにIPアドレスだけでレイヤー2通信を行う"],
+                correctIndex: 2,
+                rationale: "VLANを使うと、同じスイッチに繋がっていても部署ごとに異なるネットワーク（ブロードキャストドメイン）に分割するなど、柔軟でセキュアなネットワーク構築が可能になります。"
+            },
+            {
+                question: "異なるVLAN間（異なるネットワーク間）で通信を行うために必要な機器はどれか？",
+                options: ["リピーターハブ", "L2スイッチ", "ルーター（またはL3スイッチ）", "無線LANアクセスポイント"],
+                correctIndex: 2,
+                rationale: "異なるVLANは論理的に異なるネットワークとなるため、ネットワーク間の通信（ルーティング）を行うレイヤー3の機器であるルーターやL3スイッチが必要になります。"
+            },
+            {
+                question: "トランクリンク（Trunk Link）の役割として正しいものはどれか？",
+                options: ["複数のVLANの通信を、1本のリンク（ケーブル）で運ぶ", "物理的なVLANを1つのネットワークに統合する", "接続された端末にIPアドレスを自動的に割り当てる", "プライベートIPアドレスをグローバルIPアドレスに変換する"],
+                correctIndex: 0,
+                rationale: "トランクリンクは、スイッチ間などを接続する際に、通信フレームに「VLANタグ」を付与することで、異なる複数のVLANのデータを1本のケーブルで混在させて運ぶことができる仕組みです。"
+            },
+
+            // --- レイヤー4 (TCP/UDP) ---
+            {
+                question: "トランスポート層（レイヤー4）の役割として正しいものはどれか？",
+                options: ["物理的な信号の伝送を行う", "IPアドレスを用いて宛先ネットワークまでの経路を決定する", "送信元から宛先の「アプリケーション」までの通信を実現し、信頼性やリアルタイム性の制御を行う", "文字コードの変換やデータの圧縮を行う"],
+                correctIndex: 2,
+                rationale: "レイヤー4（TCP/UDP）は、ポート番号を用いてどのアプリケーション宛てのデータかを識別し、通信の信頼性や順序の制御（TCPの場合）などを行います。"
+            },
+            {
+                question: "通信において「ポート番号」が果たす役割はどれか？",
+                options: ["PCのハードウェアのシリアル番号を識別する", "コンピュータ内のどの「アプリケーション（サービス）」宛ての通信かを識別する", "LANケーブルを挿す物理的なポートの位置を示す", "IPアドレスのネットワーク部とホスト部を区切る"],
+                correctIndex: 1,
+                rationale: "IPアドレスが「どのコンピュータか」を特定するのに対し、ポート番号は「どのアプリケーション（サービス）か」を特定するために使用されます。"
+            },
+            {
+                question: "TCPの通信開始前に行われる、相互の通信路を確保するための手順（3回のやり取り）を何と呼ぶか？",
+                options: ["オートネゴシエーション", "3ウェイハンドシェイク", "ルーティング", "フラッディング"],
+                correctIndex: 1,
+                rationale: "TCPでは、データ転送を開始する前に「SYN」「SYN+ACK」「ACK」という3回のパケット交換を行ってコネクションを確立します。これを3ウェイハンドシェイクと呼びます。"
+            },
+            {
+                question: "TCPが「信頼性のある通信」を実現するための仕組みとして「含まれない」ものはどれか？",
+                options: ["パケットの不達時の再送制御", "パケットの順序制御（並び替え）", "ブロードキャストによる一斉送信", "データが正しく届いたかの確認応答（ACK）"],
+                correctIndex: 2,
+                rationale: "TCPは1対1の確実な通信を行うプロトコルであり、不特定多数への一斉送信（ブロードキャスト）を行うことはできません（ブロードキャストはUDPで行います）。"
+            },
+            {
+                question: "TCPとUDPの違いについて、UDPの特徴として正しいものはどれか？",
+                options: ["パケットの到達確認や再送制御を確実に行う", "通信開始前に相手との間で仮想的な通信路を確保するコネクション型通信である", "パケットの順序を保証するため、動画配信等では遅延が発生しやすい", "軽量でオーバーヘッドが少なく、リアルタイム通信に適している"],
+                correctIndex: 3,
+                rationale: "UDPはコネクションレス型通信であり、再送制御や順序制御を行いません。その分、ヘッダサイズが小さく高速に通信できるため、リアルタイム性が求められる通信に適しています。"
+            },
+            {
+                question: "UDPが利用される代表的なアプリケーション・通信はどれか？",
+                options: ["Webページの閲覧（HTTP/HTTPS）", "ファイルの確実な転送（FTP）", "電子メールの送受信（SMTP/POP3）", "IP電話や動画のストリーミング配信"],
+                correctIndex: 3,
+                rationale: "IP電話や動画配信などは、一部のデータが欠落しても、遅延なくリアルタイムにデータが届くことが優先されるため、高速なUDPが利用されます。"
+            },
+            {
+                question: "UDPがTCPよりも高速に通信できる主な理由はどれか？",
+                options: ["光ファイバーケーブル専用のプロトコルだから", "データの圧縮率がTCPより高いから", "コネクションの確立や再送制御などの複雑な処理を行わず、ヘッダサイズも小さいから", "データを必ず優先度の高い経路で送信するから"],
+                correctIndex: 2,
+                rationale: "UDPは「コネクションレス型」であり、パケットの到達確認や順序制御を行わないためオーバーヘッドが小さく、その分高速にデータを送り出すことができます。"
+            },
+
+            // --- レイヤー4〜7 機器 ---
+            {
+                question: "ロードバランサを導入する主なメリットとして正しいものはどれか？",
+                options: ["Webサーバを1台に統合でき、ハードウェアコストが削減できる", "複数のサーバに負荷を分散し、一部のサーバが故障してもサービスを継続できる", "データベースの物理的なアクセス速度（ディスクI/O）が向上する", "外部からの不正アクセスを完全に遮断できる"],
+                correctIndex: 1,
+                rationale: "ロードバランサは、アクセスを複数のサーバに振り分ける（負荷分散）機器です。特定のサーバへの負荷集中を防ぎ、さらに故障したサーバを切り離して処理を継続する「冗長化」の役割も果たします。"
+            },
+            {
+                question: "サーバやネットワークにおいて「冗長化」を行う主な目的はどれか？",
+                options: ["システムの可用性を高め、一部の機器が故障してもサービスを継続できるようにするため", "通信速度を物理的な限界以上に引き上げるため", "消費電力を半分に削減するため", "外部からのサイバー攻撃を完全に防ぐため"],
+                correctIndex: 0,
+                rationale: "冗長化とは、機器や回線を多重化して予備を持たせることです。これにより、障害発生時でもシステム全体がダウンするのを防ぎます（可用性の向上）。"
+            },
+
+            // --- WAN ---
+            {
+                question: "WANサービスの「専用線」の特徴として最も適切なものはどれか？",
+                options: ["公衆網を利用するため非常に安価である", "通信速度が時間帯によって大きく変動するベストエフォート型である", "特定の拠点間を物理的に直接結ぶため、非常に高信頼・高セキュリティだがコストが高額である", "暗号化技術を用いてインターネット上に仮想的な専用線を構築する"],
+                correctIndex: 2,
+                rationale: "専用線は特定の顧客専用の物理回線を使用するため、他の通信の影響を受けず非常に安定でセキュアですが、距離や帯域に比例してコストが非常に高くなります。"
+            },
+            {
+                question: "VPN（Virtual Private Network）が提供する主な機能として正しいものはどれか？",
+                options: ["データの暗号化とトンネリング", "IPアドレスの自動割り当て", "無線通信の通信速度の物理的な向上", "VLANの自動生成"],
+                correctIndex: 0,
+                rationale: "VPNは、インターネットなどの公衆網の上に「トンネリング」によって仮想的な通信路を構築し、さらに「暗号化」を行うことで、外部から傍受されても安全に通信を行う技術です。"
+            },
+            {
+                question: "IP-VPNの特徴として正しいものはどれか？",
+                options: ["インターネット回線を利用するためコストが安い", "通信事業者の閉域網（IP網）を利用し、L3（ネットワーク層）で拠点間を接続する高セキュリティなサービスである", "TCP/IP以外のあらゆるプロトコル（AppleTalkなど）もそのまま利用できる", "通信経路が暗号化されないため、セキュリティが非常に低い"],
+                correctIndex: 1,
+                rationale: "IP-VPNは、通信事業者が独自に構築した閉域IPネットワークを利用するWANサービスです。インターネットから隔離されているため安全性が高く、ルーティング（L3）ベースで通信を行います。"
+            },
+            {
+                question: "広域イーサネットの特徴として正しいものはどれか？",
+                options: ["公衆網であるインターネットを利用するため、通信品質が比較的不安定である", "通信事業者の閉域網を利用し、L2（データリンク層）で拠点間を接続できる", "最も低コストで導入できるが、暗号化されないためセキュリティが低い", "L3（ネットワーク層）のIPプロトコルでの通信に限定される"],
+                correctIndex: 1,
+                rationale: "広域イーサネットは、通信事業者の閉域網を利用して離れた拠点をL2（データリンク層）で接続するサービスです。LANと同じ感覚で利用でき、IPプロトコル以外の通信も扱える柔軟性と高い安定性が特徴です。"
+            }
+        ];
+
+        // 状態管理
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const totalQuestions = quizData.length;
+
+        // 初期設定
+        document.getElementById('total-q-num').textContent = totalQuestions;
+        document.getElementById('result-total-count').textContent = totalQuestions;
+
+        // 1問を描画する関数
+        function renderQuestion(index) {
+            // UIのリセット
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('submit-answer-btn').classList.remove('hidden');
+            document.getElementById('next-question-btn').classList.add('hidden');
+            document.getElementById('show-result-btn').classList.add('hidden');
+            document.getElementById('current-q-num').textContent = index + 1;
+
+            const item = quizData[index];
+            const container = document.getElementById('question-container');
+            
+            // 選択肢のHTML生成
+            let optionsHtml = '';
+            item.options.forEach((opt, optIndex) => {
+                optionsHtml += `
+                    <label class="option-label flex items-center p-4 border border-gray-200 rounded-lg mb-2 cursor-pointer relative" id="label-${index}-${optIndex}">
+                        <input type="radio" name="current-q" value="${optIndex}" class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="option-text ml-3 text-gray-700">${opt}</span>
+                    </label>
+                `;
+            });
+
+            // 問題コンテナに流し込み
+            container.innerHTML = `
+                <div class="p-6 border-b border-gray-100 bg-gray-50">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <span class="text-blue-600 mr-2">Q${index + 1}.</span>${item.question}
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-1">
+                        ${optionsHtml}
+                    </div>
+                    
+                    <!-- 解説エリア（初期非表示） -->
+                    <div id="explanation-area" class="hidden mt-6 p-4 rounded-lg border">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-0.5">
+                                <svg id="explanation-icon" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-lg font-bold mb-1" id="result-status-title"></h4>
+                                <p class="text-base text-gray-800 leading-relaxed">${item.rationale}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 解答して採点する処理
+        function checkAnswer() {
+            const selected = document.querySelector(`input[name="current-q"]:checked`);
+            
+            // 未選択チェック
+            if (!selected) {
+                document.getElementById('error-message').classList.remove('hidden');
+                return;
+            }
+            
+            document.getElementById('error-message').classList.add('hidden');
+            const userAnswer = parseInt(selected.value);
+            const item = quizData[currentQuestionIndex];
+            const isCorrect = (userAnswer === item.correctIndex);
+            
+            // 正解ならスコア加算
+            if (isCorrect) {
+                score++;
+            }
+
+            // ラジオボタンの入力を無効化（選び直し防止）
+            document.querySelectorAll('input[type="radio"]').forEach(radio => radio.disabled = true);
+            
+            // 選択肢のスタイル更新
+            const selectedLabel = document.getElementById(`label-${currentQuestionIndex}-${userAnswer}`);
+            const correctLabel = document.getElementById(`label-${currentQuestionIndex}-${item.correctIndex}`);
+
+            // 正解の選択肢を緑色に
+            correctLabel.classList.add('correct-bg');
+            // ユーザーが間違えた場合は選んだものを赤色に
+            if (!isCorrect) {
+                selectedLabel.classList.add('incorrect-bg');
+            }
+
+            // 解説エリアの表示と装飾
+            const expArea = document.getElementById('explanation-area');
+            const expTitle = document.getElementById('result-status-title');
+            const expIcon = document.getElementById('explanation-icon');
+            
+            expArea.classList.remove('hidden');
+            
+            if (isCorrect) {
+                expTitle.textContent = "正解！";
+                expTitle.className = "text-lg font-bold text-green-700 mb-1";
+                expArea.className = "mt-6 p-4 bg-green-50 rounded-lg border border-green-300";
+                expIcon.className = "h-6 w-6 text-green-600";
+            } else {
+                expTitle.textContent = "不正解...";
+                expTitle.className = "text-lg font-bold text-red-700 mb-1";
+                expArea.className = "mt-6 p-4 bg-red-50 rounded-lg border border-red-300";
+                expIcon.className = "h-6 w-6 text-red-600";
+            }
+
+            // ボタンの切り替え
+            document.getElementById('submit-answer-btn').classList.add('hidden');
+            
+            // 次の問題があるか、最後かでボタンを出し分ける
+            if (currentQuestionIndex < totalQuestions - 1) {
+                document.getElementById('next-question-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('show-result-btn').classList.remove('hidden');
+            }
+        }
+
+        // 次の問題へ進む処理
+        function nextQuestion() {
+            currentQuestionIndex++;
+            renderQuestion(currentQuestionIndex);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 最終結果を表示する処理
+        function showFinalResult() {
+            // クイズエリアを隠す
+            document.getElementById('quiz-area').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            
+            // 結果エリアを表示
+            const resultSection = document.getElementById('result-section');
+            resultSection.classList.remove('hidden');
+            
+            // スコア計算と表示
+            document.getElementById('score-count').textContent = score;
+            const percentage = Math.round((score / totalQuestions) * 100);
+            
+            // プログレスバーのアニメーション
+            setTimeout(() => {
+                document.getElementById('score-progress').style.width = `${percentage}%`;
+                document.getElementById('score-percentage-text').textContent = `${percentage}%`;
+            }, 100);
+
+            // 評価メッセージの設定
+            const resultMsg = document.getElementById('result-message');
+            if (percentage === 100) {
+                resultMsg.textContent = "完璧です！ネットワークの基礎が完全に身についています。";
+                resultMsg.className = "text-center text-lg font-bold text-green-600 mb-8";
+            } else if (percentage >= 70) {
+                resultMsg.textContent = "素晴らしい！合格ラインに達しています。不正解だった箇所を復習してさらに理解を深めましょう。";
+                resultMsg.className = "text-center text-lg font-bold text-blue-600 mb-8";
+            } else {
+                resultMsg.textContent = "復習のチャンスです！解説をよく読み直して、もう一度挑戦してみましょう。";
+                resultMsg.className = "text-center text-lg font-bold text-yellow-600 mb-8";
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // クイズを最初からやり直す処理
+        function resetQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            
+            // 結果エリアを隠してプログレスバーをリセット
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('score-progress').style.width = '0%';
+            
+            // クイズエリアを再表示
+            document.getElementById('quiz-area').classList.remove('hidden');
+            document.getElementById('progress-container').classList.remove('hidden');
+            
+            // 第1問目を描画
+            renderQuestion(currentQuestionIndex);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ページ読み込み時に第1問目を描画
+        renderQuestion(currentQuestionIndex);
+
+    </script>
+</body>
+</html>
